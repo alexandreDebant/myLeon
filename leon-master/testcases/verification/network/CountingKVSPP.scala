@@ -9,10 +9,10 @@ import FifoNetwork._
 
 object PrettyPrinting {
   
-  val a1 = SystemActor(1)
-  val a2 = SystemActor(2)
-  val a3 = SystemActor(3)
-  val a4 = UserActor(4)
+  val a1 = ActorIdSys(1)
+  val a2 = ActorIdSys(2)
+  val a3 = ActorIdSys(3)
+  val a4 = ActorIdUser(4)
   
   def stateToString(s: State) = {
     s match {
@@ -23,10 +23,10 @@ object PrettyPrinting {
   
   def actorIdToString(id: ActorId) = {
     id match {
-      case SystemActor(1) => "A1"
-      case SystemActor(2) => "A2"
-      case SystemActor(3) => "A3"
-      case UserActor(1) => "A4"
+      case ActorIdSys(1) => "A1"
+      case ActorIdSys(2) => "A2"
+      case ActorIdSys(3) => "A3"
+      case ActorIdUser(1) => "A4"
     }
   }
   
