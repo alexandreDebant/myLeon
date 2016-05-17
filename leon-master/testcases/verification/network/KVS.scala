@@ -11,18 +11,26 @@ import leon.lang._
 object Protocol {
   import ProtocolProof._
 
+  //temporary declaration (for ProtocolProof)
+  case class Increment() extends Message
+  case class Deliver(i: BigInt) extends Message
+
+  case class CCounter(i: BigInt) extends State
+  case class VCounter(i: BigInt) extends State
+  case class BadState() extends State
+  
+  case class ActorId1() extends ActorId
+  case class ActorId2() extends ActorId
+  //
+
   case class WriteUser(s: String, i: BigInt) extends Message
   case class WriteSystem(s: String, i: BigInt) extends Message
   case class Read(s: String) extends Message
   case class Value(v: Option[BigInt]) extends Message
-  case class Deliver(j: BigInt) extends Message
-  case class Increment() extends Message
 
   case class CommonState() extends State
   case class BadState() extends State
 
-  case class ActorId1() extends ActorId
-  case class ActorId2() extends ActorId
   case class ActorIdSys(i: BigInt) extends ActorId
   case class ActorIdUser(i: BigInt) extends ActorId
 
