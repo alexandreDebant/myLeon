@@ -30,33 +30,31 @@ object ProtocolProof {
   
   def makeNetwork(p: Parameter) = {
     
-    def states(id: ActorId): Option[State] = id match {
+    def states(id: ActorId): Option[State] = {
       Some(CommonState())
     }
     
     def getActor(id: ActorId): Option[Actor] = id match {
       case ActorIdSys(x) => if (x == 1) {Some(SystemActor(actor1))}
 			else {
-			  if (x == 2) then {Some(SystemActor(actor2))}
+			  if (x == 2) {Some(SystemActor(actor2))}
 			  else {
 			    Some(SystemActor(actor1))
 			  }
 			}
-      case ActorIdUser(x) => Some(userActor(actor4))
+      case ActorIdUser(x) => Some(UserActor(actor4))
     }
 
-
+    var messages: MMap[(ActorId,ActorId),List[Message]] = MMap()
+    messages = messages.updated((actor1,actor2),  List(WriteSystem("1", 1)))
+    messages = messages.updated((actor4,actor2), List(Read("1"), WriteUser("1", 2), Read("1")))
+    messages = messages.updated((actor2,actor3), List(WriteSystem("1", 2)))
+    messages = messages.updated((actor4,actor3), List(Read("1"), Read("1")))
+    messages = messages.updated((actor1,actor3), List(WriteSystem("1", 1)))
+ 
     VerifiedNetwork(NoParam(), 
 		MMap(states), 
-		MMap(
-		  (sender,receiver) =>
-			if (sender == actor1 && receiver == actor2) {List(WriteSystem("1", 1))} 
-			if (sender == actor4 && receiver == actor2) {List(Read("1"), WriteUser("1", 2), Read("1"))}
-			if (sender == actor2 && receiver == actor3) {List(WriteSystem("1", 2))}
-			if (sender == actor4 && receiver == actor3) {List(Read("1"), Read("1"))}
-			if (sender == actor4 && receiver == actor3) {List(WriteSystem("1", 1))}
-			else {List()}
-		),
+		messages,
 		MMap(getActor))
   }
 

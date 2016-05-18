@@ -7,6 +7,8 @@ import sun.font.TrueTypeFont
 
 import scala.language.postfixOps
 import leon.lang._
+import leon.proof.check
+import leon.collection._
 
 object Protocol {
 
@@ -82,11 +84,7 @@ object Protocol {
 
       (sender, m, state) match {
         case (sender, Value(v), CommonState()) =>
-          x = v
-          v match {
-            case Some(i) => PrettyPrinting.messageToString(Deliver(i))
-            case None => PrettyPrinting.messageToString(Deliver(50))
-          }
+          PrettyPrinting.messageToString(Value(v))
         case _ => update(BadState())
       }
     }  ensuring(true)
@@ -106,7 +104,7 @@ object Protocol {
     val a3 = SystemActor(actor3)
     val a4 = UserActor(actor4)
 
-    runActors(NoParam(), List(actor1, actor2, actor3, actor4), List(
+    runActors(NoParam(), a1, List(
       (actor4, actor1, WriteUser("1", 1)),
       (actor1, actor2, WriteSystem("1", 1)),
       (actor4, actor2, Read("1")),

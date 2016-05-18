@@ -39,8 +39,7 @@ object PrettyPrinting {
   
   def messageToString(m: Message) = {
     m match  {
-      case Value(Some(j)) => "Value(" + j + ")"
-      case Value(None) => "Value(None)"
+      case Value(x) => "Value(" + x + ")"
       case Read(s) => "Read(" + s + ")"
       case WriteUser(s, i) => "WriteUser(" + s + ", " + i + ")"
       case WriteSystem(s, i) => "WriteUser(" + s + ", " + i + ")"
