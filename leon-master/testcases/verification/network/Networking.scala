@@ -26,7 +26,6 @@ object Networking {
     def receive(id: ActorId, m: Message)(implicit net: VerifiedNetwork): Unit
     
     def state(implicit net: VerifiedNetwork) = {
-      require(net.states.contains(myId))
       net.getState(myId)
     }
     
@@ -39,13 +38,11 @@ object Networking {
   
   
   def runActors(p: Parameter, initial_actor: Actor, schedule: List[(ActorId,ActorId,Message)]): Unit = {
-    require(validParam(p))
   
     val net = makeNetwork(p)
     
   
     def loop(schedule: List[(ActorId,ActorId,Message)]): Unit = {
-      require(networkInvariant(net.param, net.states, net.messages, net.getActor))
 
       schedule match {
         case Nil() => ()
@@ -55,7 +52,7 @@ object Networking {
             loop(schedule2)
             
       }
-    } ensuring(_ => networkInvariant(net.param, net.states, net.messages, net.getActor))
+    }
     
   
     initial_actor.init()(net)

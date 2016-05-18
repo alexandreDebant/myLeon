@@ -23,9 +23,7 @@ object ProtocolProof {
   }
   
   
-  def validGetActor(net: VerifiedNetwork, id: ActorId) = {
-    require(networkInvariant(net.param, net.states, net.messages, net.getActor))
-    
+  def validGetActor(net: VerifiedNetwork, id: ActorId) = {    
     net.getActor.contains(id)
   } holds
   
@@ -33,243 +31,117 @@ object ProtocolProof {
   def makeNetwork(p: Parameter) = {
     
     def states(id: ActorId): Option[State] = id match {
-      case ActorId1() => Some(CCounter(0))
-      case ActorId2() => Some(VCounter(0))
+      Some(CommonState())
     }
     
     def getActor(id: ActorId): Option[Actor] = id match {
-      case ActorId1() => Some(CountingActor(actor1))
-      case ActorId2() => Some(CheckingActor(actor2))
+      case ActorIdSys(x) => if (x == 1) {Some(SystemActor(actor1))}
+			else {
+			  if (x == 2) then {Some(SystemActor(actor2))}
+			  else {
+			    Some(SystemActor(actor1))
+			  }
+			}
+      case ActorIdUser(x) => Some(userActor(actor4))
     }
-    
-    VerifiedNetwork(NoParam(), MMap(states), MMap(), MMap(getActor))
-  } ensuring(res => networkInvariant(res.param, res.states, res.messages, res.getActor))
+
+
+    VerifiedNetwork(NoParam(), 
+		MMap(states), 
+		MMap(
+		  (sender,receiver) =>
+			if (sender == actor1 && receiver == actor2) {List(WriteSystem("1", 1))} 
+			if (sender == actor4 && receiver == actor2) {List(Read("1"), WriteUser("1", 2), Read("1"))}
+			if (sender == actor2 && receiver == actor3) {List(WriteSystem("1", 2))}
+			if (sender == actor4 && receiver == actor3) {List(Read("1"), Read("1"))}
+			if (sender == actor4 && receiver == actor3) {List(WriteSystem("1", 1))}
+			else {List()}
+		),
+		MMap(getActor))
+  }
 
   
   def validParam(p: Parameter) = true
   
   // This is an invariant of the class VerifiedNetwork
   def networkInvariant(param: Parameter, states: MMap[ActorId, State], messages: MMap[(ActorId,ActorId),List[Message]], getActor: MMap[ActorId,Actor]) = {
-    states.contains(actor1) && 
-    states.contains(actor2) &&
-    states(actor1) != BadState() &&
-    states(actor2) != BadState() &&
-    getActor.contains(actor1) && 
-    getActor.contains(actor2) && 
-    getActor(actor1) == CountingActor(actor1) &&
-    getActor(actor2) == CheckingActor(actor2) && 
-    !messages.contains((actor2,actor2)) &&
-    !messages.contains((actor2,actor1)) &&
-    areIncrements(messages.getOrElse((actor1,actor1), Nil())) &&
-    ((states(actor1),states(actor2)) match {
-      case (CCounter(i),VCounter(k)) =>
-        val sms = messages.getOrElse((actor1,actor2), Nil())
-    
-        areDelivers(sms) && 
-        isSorted(sms) &&
-        i >= k && (
-          sms.isEmpty || (
-            i >= max(sms) &&
-            k < min(sms)
-          )
-        )
-      case _ => false
-      })
+    true
   }
   
     
     
   def countingActorReceivePre(receiver: Actor, sender: ActorId, m: Message)(implicit net: VerifiedNetwork) = {
-    require(networkInvariant(net.param, net.states, net.messages, net.getActor))
-    (sender, m, receiver.state) match {
-      case (ActorId1(), Increment(), CCounter(i)) =>
-    
-        val j = i+1
-        val a1a2messages = net.messages.getOrElse((actor1,actor2),Nil())
-        val a1a1messages = net.messages.getOrElse((actor1,actor1),Nil())
-        val newStates = net.states.updated(actor1, CCounter(j))
-        val newa1a2messages = a1a2messages :+ Deliver(j)
-        val newa1a1messages = a1a1messages :+ Increment()
-        val newMapMessages = net.messages.updated((actor1,actor2), newa1a2messages)
-        val newnewMapMessages = newMapMessages.updated((actor1,actor1), newa1a1messages)
-        val VCounter(k) = net getState(actor2)
-        
-        areDelivers(a1a2messages) && 
-        appendDeliver(a1a2messages, j) &&
-        areIncrements(a1a1messages) && 
-        appendIncrement(a1a1messages) && 
-        areIncrements(newa1a1messages) && 
-        areDelivers(newa1a2messages) &&
-        appendDeliver(a1a2messages, j) &&
-        appendItself(a1a2messages, j) &&
-        j >= max(newa1a2messages) &&
-        k < j &&
-        appendLarger(a1a2messages, j, k) &&
-        k < min(newa1a2messages) &&
-        isSorted(a1a2messages) && 
-        appendSorted(a1a2messages, j) && 
-        isSorted(newa1a2messages) && 
-        networkInvariant(net.param, newStates, newMapMessages, net.getActor) &&
-        networkInvariant(net.param, newStates, newnewMapMessages, net.getActor)
-        
-      case _ => false
-    }
-    
+    true
   }
   
   def checkingActorReceivePre(receiver: Actor, sender: ActorId, m: Message)(implicit net: VerifiedNetwork) = {
-    require(networkInvariant(net.param, net.states, net.messages, net.getActor))
-    sender == ActorId1() && 
-    ((net getState(actor1), m, net getState(actor2)) match {
-      case (CCounter(i), Deliver(j),VCounter(k)) =>
-        val a1a2messages = net.messages.getOrElse((actor1,actor2),Nil())
-        i >= j && j > k &&
-          ( a1a2messages.isEmpty || j < min(a1a2messages) )
-      case _ => false
-    })
+    true
   }
   
   def receivePre(a: Actor, sender: ActorId, m: Message)(implicit net: VerifiedNetwork) = {
-    networkInvariant(net.param, net.states, net.messages, net.getActor) && (
-    a match {
-      case CountingActor(_) => countingActorReceivePre(a, sender, m)
-      case CheckingActor(_) => checkingActorReceivePre(a, sender, m)
-    })
+    true
   }
   
   def peekMessageEnsuresReceivePre(n: VerifiedNetwork, sender: ActorId, receiver: ActorId, m: Message) = {
-    require(networkInvariant(n.param, n.states, n.messages, n.getActor))
-    
-    val sms = n.messages.getOrElse((sender, receiver), Nil())
-    
-  
-    sms match {
-      case Cons(x, xs) if (x == m) => 
-        val messages2 = n.messages.updated((sender, receiver), xs)
-        
-        (sender, receiver) match {
-          case (ActorId1(), ActorId2()) => 
-            
-              ((n.getState(actor1), m, n.getState(actor2)) match {
-                case (CCounter(i), Deliver(j),VCounter(k)) =>
-                  val mm = messages2.getOrElse((actor1,actor2),Nil())
-
-                  smallestHead(j,sms) && (mm.isEmpty || j < min(mm))
-              })
-            
-          case (ActorId1(), ActorId1()) =>
-            true
-          
-          case _ => 
-              false
-        }
-      case _ => 
-        true
-    }
+    true
   }
   
   
   def initPre(a: Actor)(implicit net: VerifiedNetwork) = {
-    networkInvariant(net.param, net.states, net.messages, net.getActor) && 
-    appendIncrement(net.messages.getOrElse((actor1,actor1), Nil()))
+    true
   }
   
   
   def min(l: List[Message]): BigInt = {
-    require(!l.isEmpty && areDelivers(l))
-    
-    l match {
-      case Cons(Deliver(i), Nil()) => i
-      case Cons(Deliver(i), xs) =>
-        val m = min(xs)
-        if (i < m) i else m
-    }
+    0
   }
   
   def max(l: List[Message]): BigInt = {
-    require(!l.isEmpty && areDelivers(l))
-    
-    l match {
-      case Cons(Deliver(i), Nil()) => i
-      case Cons(Deliver(i), xs) =>
-        val m = max(xs)
-        if (i > m) i else m
-    }
+    0
   }
   
 
   def isSorted(l: List[Message]): Boolean = {
-    require(areDelivers(l))
-    
-    l match {
-      case Nil() => true
-      case Cons(x, Nil()) => true
-      case Cons(Deliver(x), ls@Cons(Deliver(y), ys)) => x < y && isSorted(ls)
-    }
+    true
   }
   
   def areDelivers(l: List[Message]): Boolean = {
-    l match {
-      case Nil() => true
-      case Cons(Deliver(_), xs) => areDelivers(xs)
-      case _ => false
-    }
+    true
   }
   
   @induct 
   def appendDeliver(messages: List[Message], x: BigInt) = {
-    require(areDelivers(messages))
-    
-    areDelivers(messages :+ Deliver(x))
+    true
   } holds
   
   def areIncrements(l: List[Message]): Boolean = {
-    l match {
-      case Nil() => true
-      case Cons(Increment(), xs) => areIncrements(xs)
-      case _ => false
-    }
+    true
   }
   
   @induct 
   def appendIncrement(messages: List[Message]) = {
-    require(areIncrements(messages))
-    
-    areIncrements(messages :+ Increment())
+    true
   } holds
 
   
   @induct
   def appendItself(l: List[Message], j: BigInt) = {
-    require(areDelivers(l) && (l.isEmpty || j >= max(l)))
-    
-    appendDeliver(l,j) &&
-    j >= max(l :+ Deliver(j))
+    true
   } holds
   
   @induct
   def appendLarger(l: List[Message], j: BigInt, k: BigInt) = {
-    require(areDelivers(l) && (l.isEmpty || k < min(l)) && k < j)
-    
-    appendDeliver(l,j) &&
-    k < min(l :+ Deliver(j))
+    true
   } holds
   
   @induct
   def appendSorted(l: List[Message], j: BigInt) = {
-    require(l.isEmpty || (areDelivers(l) && isSorted(l) && j > max(l)))
-  
-    appendDeliver(l,j) &&
-    isSorted(l :+ Deliver(j))
+    true
   } holds
   
   
   @induct
   def smallestHead(j: BigInt, l: List[Message]) = {
-    require(areDelivers(l) && !l.isEmpty && isSorted(l))
-    
-    l match {
-      case Cons(Deliver(j), xs) => xs.isEmpty || j < min(xs)
-    }
+    true
   } holds
 }
