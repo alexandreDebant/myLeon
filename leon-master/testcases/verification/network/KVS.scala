@@ -9,15 +9,16 @@ import scala.language.postfixOps
 import leon.lang._
 import leon.proof.check
 import leon.collection._
+import leon.annotation._
 
 object Protocol {
 
   case class WriteUser(s: String, i: BigInt) extends Message
   case class WriteSystem(s: String, i: BigInt) extends Message
   case class Read(s: String) extends Message
-  case class Value(v: Option[BigInt]) extends Message
+  case class Value(v: BigInt) extends Message
 
-  case class CommonState() extends State
+  case class CommonState(mem: MMap[String,BigInt]) extends State
   case class BadState() extends State
 
   case class ActorIdSys(i: BigInt) extends ActorId
@@ -34,7 +35,7 @@ object Protocol {
   case class SystemActor(myId: ActorId) extends Actor {
     require(myId == ActorIdSys(1) || myId == ActorIdSys(2) || myId == ActorIdSys(3))
 
-    var memory: MMap[String, BigInt] = MMap((x: String) => (None[BigInt]))
+    //var memory: MMap[String, BigInt] = MMap((x: String) => (None[BigInt]))
 
     def init()(implicit net: VerifiedNetwork) = {
       require(true)
@@ -45,24 +46,38 @@ object Protocol {
       require(true)
 
       (sender, m, state) match {
-        case (id, WriteUser(s,i), CommonState()) =>
-          memory = memory.updated(s,i)
+        case (id, WriteUser(s,i), CommonState(x)) =>
+          val memory = this.state(net);
+	  memory match {
+	    case CommonState(mem) => 
+	      update(CommonState(mem.updated(s,i)))
+	    case BadState() => update(BadState())
+	  }
           if(myId != actor1){
             !! (actor1, WriteSystem(s,i))
-          }
+          };
           if(myId != actor2){
             !! (actor2, WriteSystem(s,i))
-          }
+          };
           if(myId != actor3){
             !! (actor3, WriteSystem(s,i))
           }
 
-        case (id, WriteSystem(s,i), CommonState()) =>
-          memory = memory.updated(s,i)
+        case (id, WriteSystem(s,i), CommonState(x)) =>
+          val memory = this.state(net);
+	  memory match {
+	    case CommonState(mem) => 
+	      update(CommonState(mem.updated(s,i)));
+	    case BadState() => update(BadState())
+	  }
 
-        case (id,Read(s), CommonState()) =>
-          !! (id, Value(Some(memory.getOrElse(s,0)))) //cannot return None in default case
-
+        case (id,Read(s), CommonState(x)) =>
+           val memory = this.state(net);
+	   memory match {
+	     case CommonState(mem) => 
+	   	!! (id, Value(mem.getOrElse(s,0))) //cannot return None in default case
+	     case BadState() => update(BadState())
+	   }
         case _ => update(BadState())
       }
     } ensuring(true)
@@ -83,7 +98,7 @@ object Protocol {
       check(sender == actor1 || sender == actor2 || sender == actor3)
 
       (sender, m, state) match {
-        case (sender, Value(v), CommonState()) =>
+        case (sender, Value(v), CommonState(x)) =>
           PrettyPrinting.messageToString(Value(v))
         case _ => update(BadState())
       }

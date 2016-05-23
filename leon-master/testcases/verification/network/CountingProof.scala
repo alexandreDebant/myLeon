@@ -31,7 +31,7 @@ object ProtocolProof {
   def makeNetwork(p: Parameter) = {
     
     def states(id: ActorId): Option[State] = {
-      Some(CommonState())
+      Some(CommonState(MMap((x: String) => (None[BigInt]))))
     }
     
     def getActor(id: ActorId): Option[Actor] = id match {

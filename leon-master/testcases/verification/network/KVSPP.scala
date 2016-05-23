@@ -16,7 +16,7 @@ object PrettyPrinting {
   
   def stateToString(s: State) = {
     s match {
-      case CommonState() => "CommonState"
+      case CommonState(x) => "CommonState"
       case BadState() => "BadState"
     }
   }
