@@ -46,12 +46,9 @@ object ProtocolProof {
     }
 
     var messages: MMap[(ActorId,ActorId),List[Message]] = MMap()
-    messages = messages.updated((actor1,actor2),  List(WriteSystem("1", 1)))
     messages = messages.updated((actor4,actor2), List(Read("1"), WriteUser("1", 2), Read("1")))
-    messages = messages.updated((actor2,actor3), List(WriteSystem("1", 2)))
     messages = messages.updated((actor4,actor3), List(Read("1"), Read("1")))
-    messages = messages.updated((actor1,actor3), List(WriteSystem("1", 1)))
- 
+     
     VerifiedNetwork(NoParam(), 
 		MMap(states), 
 		messages,
